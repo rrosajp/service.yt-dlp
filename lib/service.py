@@ -90,7 +90,7 @@ class YtDlpService(Service):
         self.logger.info(f"{localizedString(33100)}: {labels}")
 
     def __stop__(self):
-        self.__extractor__.close()
+        self.__extractor__ = self.__extractor__.close()
         self.logger.info("stopped")
 
     def start(self, **kwargs):
