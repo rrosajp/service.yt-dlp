@@ -39,9 +39,33 @@ class YtDlpVideo(dict):
 # ------------------------------------------------------------------------------
 # YtDlpService
 
+class __IntFramerate__(dict):
+
+    def __missing__(self, key):
+        return key
+
+class __FloatFramerate__(__IntFramerate__):
+
+    def __init__(self):
+        super(__FloatFramerate__, self).__init__(
+            {24: 23.976, 30: 29.97, 60: 59.94}
+        )
+
+class __NoFramerate__(dict):
+
+    def __missing__(self, key):
+        return 0
+
+
 class YtDlpService(Service):
 
     __fps_limits__ = {0: 32101, 30: 32102}
+
+    __fps_hints__ = {
+        "int":   {"label": 32201, "values": __IntFramerate__()},
+        "float": {"label": 32202, "values": __FloatFramerate__()},
+        "none":  {"label": 32203, "values": __NoFramerate__()}
+    }
 
     __codecs__ = {
         "avc1": {"label": 33101, "names": ("avc1", )},
@@ -62,30 +86,29 @@ class YtDlpService(Service):
         self.__supportedSubtitles__ = ("vtt",)
 
     def __setup__(self):
-
         # include automatic captions
         self.__captions__ = getSetting("subs.captions", bool)
         self.logger.info(f"{localizedString(31100)}: {self.__captions__}")
-
-        # limit fps
-        self.__fps__ = getSetting("fps.limit", int)
+        # fps limit
+        self.__fps_limit__ = getSetting("fps.limit", int)
         self.logger.info(
             f"{localizedString(32100)}: "
-            f"{localizedString(self.__fps_limits__[self.__fps__])}"
+            f"{localizedString(self.__fps_limits__[self.__fps_limit__])}"
         )
-
+        # fps hint
+        self.__fps_hint__ = getSetting("fps.hint", str)
+        self.logger.info(
+            f"{localizedString(32200)}: "
+            f"{localizedString(self.__fps_hints__[self.__fps_hint__]['label'])}"
+        )
         # exclude codecs
         self.__exclude__ = []
         labels = None
         if (exclude := getSetting("codecs.exclude")):
-            exclude = exclude.split(",")
-            self.__exclude__ = [
-                name for codec in exclude
-                for name in self.__codecs__[codec]["names"]
-            ]
+            self.__exclude__ = exclude.split(",")
             labels = ", ".join(
                 localizedString(self.__codecs__[codec]["label"])
-                for codec in exclude
+                for codec in self.__exclude__
             )
         self.logger.info(f"{localizedString(33100)}: {labels}")
 
@@ -101,6 +124,7 @@ class YtDlpService(Service):
 
     def onSettingsChanged(self):
         self.__setup__()
+        #super(YtDlpService, self).onSettingsChanged() # XXX: do NOT do that
 
     # --------------------------------------------------------------------------
 
@@ -109,15 +133,15 @@ class YtDlpService(Service):
             unquote(url), download=False, **kwargs
         )
 
-    def __video_stream__(self, fmt, fps=0, **kwargs):
+    def __video_stream__(self, fmt, fps_limit=0, fps_hint="int", **kwargs):
         fmt_fps = fmt["fps"]
-        if ((not fps) or (fmt_fps <= fps)):
+        if ((not fps_limit) or (fmt_fps <= fps_limit)):
             return {
                 "lang": None,
                 "averageBitrate": int(fmt["vbr"] * 1000),
                 "width": fmt["width"],
                 "height": fmt["height"],
-                "frameRate": fmt_fps
+                "frameRate": self.__fps_hints__[fps_hint]["values"][fmt_fps]
             }
 
     def __audio_stream__(self, fmt, **kwargs):
@@ -180,10 +204,31 @@ class YtDlpService(Service):
 
     # public api ---------------------------------------------------------------
 
+    def __excludes__(self, exclude):
+        return tuple(
+            name for codec in exclude
+            for name in self.__codecs__[codec]["names"]
+        )
+
     @public
-    def video(self, url, captions=False, exclude=None, fps=0, **kwargs):
-        self.logger.info(f"video(url={url})")
-        captions = captions or self.__captions__
+    def video(
+        self,
+        url,
+        captions=None,
+        exclude=None,
+        fps_limit=None,
+        fps_hint=None,
+        **kwargs
+    ):
+        self.logger.info(
+            f"video(url={url}, "
+            f"captions={captions}, "
+            f"exclude={exclude}, "
+            f"fps_limit={fps_limit}, "
+            f"fps_hint={fps_hint}, "
+            f"kwargs={kwargs})"
+        )
+        captions = captions if captions is not None else self.__captions__
         if (video := YtDlpVideo(self.__extract__(url), captions=captions)):
             formats = video.pop("formats")
             subtitles = video.pop("subtitles")
@@ -191,14 +236,16 @@ class YtDlpService(Service):
                 video["manifestType"] = "hls"
                 video["mimeType"] = None
             else:
-                exclude = exclude or self.__exclude__
-                fps = fps or self.__fps__
+                exclude = exclude if exclude is not None else self.__exclude__
+                fps_limit = fps_limit if fps_limit is not None else self.__fps_limit__
+                fps_hint = fps_hint if fps_hint is not None else self.__fps_hint__
                 video["url"] = self.__manifest__(
                     video["duration"],
                     formats,
                     subtitles,
-                    exclude=tuple(exclude) if exclude else None,
-                    fps=fps,
+                    exclude=self.__excludes__(exclude) if exclude else None,
+                    fps_limit=fps_limit,
+                    fps_hint=fps_hint,
                     **kwargs
                 )
                 video["manifestType"] = "mpd"

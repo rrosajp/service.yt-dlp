@@ -44,6 +44,23 @@ msgid "30 fps"
 msgstr ""
 
 
+msgctxt "#32200"
+msgid "Framerate hinting"
+msgstr ""
+
+msgctxt "#32201"
+msgid "Integer"
+msgstr ""
+
+msgctxt "#32202"
+msgid "Fractional"
+msgstr ""
+
+msgctxt "#32203"
+msgid "None"
+msgstr ""
+
+
 msgctxt "#33000"
 msgid "Codecs"
 msgstr ""
