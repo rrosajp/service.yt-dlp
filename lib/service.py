@@ -4,6 +4,7 @@
 from urllib.parse import unquote
 
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError, ExtractorError, UserNotLive
 
 from iapc import public, Client, Service
 from nuttig import getSetting, localizedString, notify, ICONERROR
@@ -128,10 +129,29 @@ class YtDlpService(Service):
 
     # --------------------------------------------------------------------------
 
+    def __reraise__(self, _type_, value, traceback=None):
+        try:
+            if value is None:
+                value = _type_()
+            if value.__traceback__ is not traceback:
+                raise value.with_traceback(traceback)
+            raise value
+        finally:
+            v = None
+            traceback = None
+
     def __extract__(self, url, **kwargs):
-        return self.__extractor__.extract_info(
-            unquote(url), download=False, **kwargs
-        )
+        try:
+            try:
+                return self.__extractor__.extract_info(
+                    unquote(url), download=False, **kwargs
+                )
+            except DownloadError as error:
+                if (exc_info := error.exc_info):
+                    self.__reraise__(*exc_info)
+                raise error
+        except (UserNotLive, ExtractorError) as error:
+            self.logger.info(error, notify=True)
 
     def __video_stream__(self, fmt, fps_limit=0, fps_hint="int", **kwargs):
         fmt_fps = fmt["fps"]
@@ -229,7 +249,10 @@ class YtDlpService(Service):
             f"kwargs={kwargs})"
         )
         captions = captions if captions is not None else self.__captions__
-        if (video := YtDlpVideo(self.__extract__(url), captions=captions)):
+        if (
+            (info := self.__extract__(url)) and
+            (video := YtDlpVideo(info, captions=captions))
+        ):
             formats = video.pop("formats")
             subtitles = video.pop("subtitles")
             if video["url"]:
