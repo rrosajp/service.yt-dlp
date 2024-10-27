@@ -88,3 +88,10 @@ msgstr ""
 msgctxt "#33105"
 msgid "AV1"
 msgstr ""
+
+
+# Notifications, dialogs
+
+msgctxt "#90004"
+msgid "To use this feature you must install and enable the following addon:\n\n'{}'"
+msgstr ""
