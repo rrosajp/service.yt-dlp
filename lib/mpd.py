@@ -106,7 +106,6 @@ class YtDlpMpd(object):
             "lang": fmt["language"],
             "averageBitrate": int(fmt["abr"] * 1000),
             "audioSamplingRate": fmt["asr"],
-            #"audioChannels": fmt["audio_channels"],
             "audioChannels": fmt.get("audio_channels", 2)
         }
 
