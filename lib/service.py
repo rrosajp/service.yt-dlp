@@ -9,7 +9,6 @@ from yt_dlp.utils import DownloadError, ExtractorError, UserNotLive
 from iapc import public, Service
 from nuttig import getSetting, localizedString
 
-from hls import YtDlpHls
 from mpd import YtDlpMpd
 
 
@@ -38,7 +37,7 @@ class YtDlpVideo(dict):
             #headers=info.get("http_headers", {}),
             formats=info.get("formats", []),
             subtitles=subtitles,
-            language=info.get("language", "")
+            language=info.get("language", ""),
         )
 
 
@@ -50,19 +49,21 @@ class YtDlpService(Service):
 
     def __init__(self, *args, **kwargs):
         super(YtDlpService, self).__init__(*args, **kwargs)
-        self.__extractor__ = YoutubeDL()
+        self.__extractor__ = YoutubeDL(
+            #params={"extractor_args": {"youtube": {"formats": "incomplete"}}}
+            #params={"extractor_args": {"youtube": {"player_client": ["tv", "ios", "web"]}}}
+            #params={"extractor_args": {"youtube": {"player_client": ["tv", "-ios", "-web"]}}}
+            #params={"extractor_args": {"youtube": {"player_client": ["tv"]}}}
+        )
         self.__mpd__ = YtDlpMpd(self.logger)
-        self.__hls__ = YtDlpHls(self.logger)
 
     def __setup__(self):
         # include automatic captions
         self.__captions__ = getSetting("subs.captions", bool)
         self.logger.info(f"{localizedString(31100)}: {self.__captions__}")
         self.__mpd__.__setup__()
-        self.__hls__.__setup__()
 
     def __stop__(self):
-        self.__hls__ = self.__hls__.__stop__()
         self.__mpd__ = self.__mpd__.__stop__()
         self.__extractor__ = self.__extractor__.close()
         self.logger.info("stopped")
@@ -118,10 +119,8 @@ class YtDlpService(Service):
             #self.logger.info(f"info: {info}")
             formats = video.pop("formats")
             subtitles = video.pop("subtitles")
-            if (url := video["url"]):
-                video["url"] = self.__hls__.playlist(
-                    url, live=video["is_live"], **kwargs
-                )
+            if video["url"]:
+                #self.logger.info(f"url: {video['url']}")
                 video["manifestType"] = "hls"
                 video["mimeType"] = None
             else:
