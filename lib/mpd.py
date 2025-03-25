@@ -47,7 +47,7 @@ class YtDlpMpd(object):
     }
 
     def __init__(self, logger):
-        self.logger = logger.getLogger(f"{logger.component}.mpd")
+        self.logger = logger.getLogger(component="mpd")
         self.__manifests__ = Client(self.__service_id__)
         self.__streamTypes__ = {
             "video": self.__video_stream__,
