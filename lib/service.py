@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+from functools import wraps
 from urllib.parse import unquote
 
 from yt_dlp import YoutubeDL
@@ -10,6 +11,23 @@ from iapc import public, Service
 from nuttig import getSetting, localizedString
 
 from mpd import YtDlpMpd
+
+
+# __params__ -------------------------------------------------------------------
+
+def __params__(func):
+    @wraps(func)
+    def wrapper(self, url, params=None, **kwargs):
+        if params:
+            extractor = self.__extractor__
+            self.__extractor__ = YoutubeDL(params=params)
+        try:
+            return func(self, url, **kwargs)
+        finally:
+            if params:
+                self.__extractor__.close()
+                self.__extractor__ = extractor
+    return wrapper
 
 
 # ------------------------------------------------------------------------------
@@ -49,12 +67,7 @@ class YtDlpService(Service):
 
     def __init__(self, *args, **kwargs):
         super(YtDlpService, self).__init__(*args, **kwargs)
-        self.__extractor__ = YoutubeDL(
-            #params={"extractor_args": {"youtube": {"formats": "incomplete"}}}
-            #params={"extractor_args": {"youtube": {"player_client": ["tv", "ios", "web"]}}}
-            #params={"extractor_args": {"youtube": {"player_client": ["tv", "-ios", "-web"]}}}
-            #params={"extractor_args": {"youtube": {"player_client": ["tv"]}}}
-        )
+        self.__extractor__ = YoutubeDL()
         self.__mpd__ = YtDlpMpd(self.logger)
 
     def __setup__(self):
@@ -104,18 +117,9 @@ class YtDlpService(Service):
         except (UserNotLive, ExtractorError) as error:
             self.logger.info(error, notify=True, time=1000)
 
-    # public api ---------------------------------------------------------------
-
-    @public
-    def video(self, url, captions=None, **kwargs):
-        self.logger.info(
-            f"video(url={url}, captions={captions}, kwargs={kwargs})"
-        )
+    def __video__(self, info, captions=None, **kwargs):
         captions = captions if captions is not None else self.__captions__
-        if (
-            (info := self.__extract__(url)) and
-            (video := YtDlpVideo(info, captions=captions))
-        ):
+        if (video := YtDlpVideo(info, captions=captions)):
             #self.logger.info(f"info: {info}")
             formats = video.pop("formats")
             subtitles = video.pop("subtitles")
@@ -131,10 +135,21 @@ class YtDlpService(Service):
                 video["mimeType"] = "application/dash+xml"
             return video
 
+    # public api ---------------------------------------------------------------
+
     @public
+    @__params__
+    def video(self, url, **kwargs):
+        self.logger.info(f"video(url={url}, kwargs={kwargs})")
+        if (info := self.__extract__(url)):
+            return self.__video__(info, **kwargs)
+
+    @public
+    @__params__
     def extract(self, url, **kwargs):
         self.logger.info(f"extract(url={url}, kwargs={kwargs})")
-        return self.__extractor__.sanitize_info(self.__extract__(url, **kwargs))
+        if (info := self.__extract__(url, **kwargs)):
+            return self.__extractor__.sanitize_info(info)
 
 
 # __main__ ---------------------------------------------------------------------
