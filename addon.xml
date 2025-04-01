@@ -8,7 +8,7 @@
         <import addon="xbmc.python" version="3.0.1" />
         <import addon="script.module.nuttig" version="1.4.2" />
         <import addon="script.module.iapc" version="2.4.2" />
-        <import addon="script.module.yt-dlp" version="2025.03.27-2" />
+        <import addon="script.module.yt-dlp" version="2025.03.31-1" />
         <import addon="service.manifests.mpd" version="1.4.2" />
     </requires>
 
