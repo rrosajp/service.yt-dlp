@@ -52,7 +52,7 @@ class YtDlpVideo(dict):
             like_count=info.get("like_count", 0),
             view_count=info.get("view_count", 0),
             timestamp=info.get("timestamp", 0),
-            #headers=info.get("http_headers", {}),
+            headers=info.get("http_headers", {}),
             formats=info.get("formats", []),
             subtitles=subtitles,
             language=info.get("language", ""),
