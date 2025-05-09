@@ -114,8 +114,10 @@ class YtDlpService(Service):
                 if (exc_info := error.exc_info):
                     self.__reraise__(*exc_info)
                 raise error
-        except (UserNotLive, ExtractorError) as error:
+        except UserNotLive as error:
             self.logger.info(error.__class__.__name__, notify=True, time=1000)
+        except ExtractorError as error:
+            self.logger.info(error, notify=True)
 
     def __video__(self, info, captions=None, **kwargs):
         captions = captions if captions is not None else self.__captions__
