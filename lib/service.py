@@ -101,7 +101,7 @@ class YtDlpService(Service):
                 raise value.with_traceback(traceback)
             raise value
         finally:
-            v = None
+            value = None
             traceback = None
 
     def __extract__(self, url, **kwargs):
@@ -115,7 +115,7 @@ class YtDlpService(Service):
                     self.__reraise__(*exc_info)
                 raise error
         except (UserNotLive, ExtractorError) as error:
-            self.logger.info(error, notify=True, time=1000)
+            self.logger.info(error.__class__.__name__, notify=True, time=1000)
 
     def __video__(self, info, captions=None, **kwargs):
         captions = captions if captions is not None else self.__captions__
