@@ -94,20 +94,26 @@ class YtDlpMpd(object):
         fmt_fps = fmt["fps"]
         if ((not fps_limit) or (fmt_fps <= fps_limit)):
             return {
-                "lang": None,
-                "averageBitrate": int(fmt["vbr"] * 1000),
+                "bandwidth": int(fmt["vbr"] * 1000),
                 "width": fmt["width"],
                 "height": fmt["height"],
                 "frameRate": self.__fps_hints__[fps_hint]["values"][fmt_fps]
             }
 
-    def __audio_stream__(self, fmt, **kwargs):
-        return {
+    def __audio_stream__(self, fmt, inputstream="adaptive", **kwargs):
+        stream = {
             "lang": fmt["language"],
-            "averageBitrate": int(fmt["abr"] * 1000),
+            "bandwidth": int(fmt["abr"] * 1000),
             "audioSamplingRate": fmt["asr"],
             "audioChannels": fmt.get("audio_channels", 2)
         }
+        if inputstream == "adaptive": # isa custom attributes
+            stream.update(
+                original=fmt.get("audioIsOriginal", False),
+                default=fmt.get("audioIsDefault", False),
+                impaired=fmt.get("audioIsDescriptive", False)
+            )
+        return stream
 
     def __stream__(self, contentType, codecs, fmt, exclude=None, **kwargs):
         if (
@@ -120,7 +126,7 @@ class YtDlpMpd(object):
                 mimeType=f"{contentType}/{fmt['ext']}",
                 id=fmt["format_id"],
                 codecs=codecs,
-                #averageBitrate=int(fmt["tbr"] * 1000),
+                #bandwidth=int(fmt["tbr"] * 1000),
                 url=fmt["url"],
                 indexRange=fmt.get("indexRange", {}),
                 initRange=fmt.get("initRange", {})
@@ -162,23 +168,32 @@ class YtDlpMpd(object):
     # manifest -----------------------------------------------------------------
 
     def manifest(
-        self, *args, exclude=None, fps_limit=None, fps_hint=None, **kwargs
+        self,
+        *args,
+        exclude=None,
+        fps_limit=None,
+        fps_hint=None,
+        inputstream=None,
+        **kwargs
     ):
+        exclude = exclude if exclude is not None else self.__exclude__
+        fps_limit = fps_limit if fps_limit is not None else self.__fps_limit__
+        fps_hint = fps_hint if fps_hint is not None else self.__fps_hint__
+        inputstream = inputstream if inputstream is not None else "adaptive"
         self.logger.info(
             f"manifest("
                 f"exclude={exclude}, "
                 f"fps_limit={fps_limit}, "
                 f"fps_hint={fps_hint}, "
+                f"inputstream={inputstream}, "
                 f"kwargs={kwargs}"
             f")"
         )
-        exclude = exclude if exclude is not None else self.__exclude__
-        fps_limit = fps_limit if fps_limit is not None else self.__fps_limit__
-        fps_hint = fps_hint if fps_hint is not None else self.__fps_hint__
         return self.__manifest__(
             *args,
             exclude=self.__excludes__(exclude) if exclude else None,
             fps_limit=fps_limit,
             fps_hint=fps_hint,
+            inputstream=inputstream,
             **kwargs
         )
