@@ -57,6 +57,8 @@
                     <default />
                     <constraints>
                         <options>
+                            <option label="33101">avc1</option>
+                            <option label="33102">mp4a</option>
                             <option label="33103">vp09</option>
                             <option label="33104">opus</option>
                             <option label="33105">av01</option>
