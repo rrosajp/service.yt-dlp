@@ -116,6 +116,16 @@ class YtDlpMpd(object):
         "none":  {"label": 32203, "values": __NoFramerate__()}
     }
 
+    __heights__ = {
+        2160: {"label": 34101, "width": 3840},
+        1440: {"label": 34102, "width": 2560},
+        1080: {"label": 34103, "width": 1920},
+        720:  {"label": 34104, "width": 1280},
+        480:  {"label": 34105, "width": 854},
+        360:  {"label": 34106, "width": 640},
+        0:    {"label": 90011, "width": 0}
+    }
+
     # --------------------------------------------------------------------------
 
     def __init__(self, logger):
@@ -149,22 +159,43 @@ class YtDlpMpd(object):
                 for codec in self.__exclude__
             )
         self.logger.info(f"{localizedString(33100)}: {labels}")
+        # preferred resolution
+        self.__height__ = getSetting("prefs.height", int)
+        self.logger.info(
+            f"{localizedString(34100)}: "
+            f"{localizedString(self.__heights__[self.__height__]['label'])}"
+        )
 
     def __stop__(self):
         self.logger.info("stopped")
 
     # --------------------------------------------------------------------------
 
-    def __video_stream__(self, fmt, fps_limit=0, fps_hint="int", **kwargs):
+    def __video_stream__(
+        self, fmt, fps_limit=0, fps_hint="int", height=None, **kwargs
+    ):
         fps = fmt["fps"]
         if ((not fps_limit) or (fps <= fps_limit)):
-            return {
+            stream = {
                 "codecs": fmt["vcodec"],
                 "bandwidth": int(fmt["vbr"] * 1000),
                 "width": fmt["width"],
                 "height": fmt["height"],
                 "frameRate": self.__fps_hints__[fps_hint]["values"][fps]
             }
+            if (
+                height and
+                (
+                    (fmt.get("height", 0) == height) or
+                    (
+                        (height := self.__heights__.get(height, {})) and
+                        fmt.get("width", 0) == height["width"]
+                    )
+                )
+
+            ):
+                stream["default"] = True
+            return stream
 
     def __audio_stream__(self, fmt, inputstream="adaptive", **kwargs):
         stream = {
@@ -226,18 +257,21 @@ class YtDlpMpd(object):
         exclude=None,
         fps_limit=None,
         fps_hint=None,
+        height=None,
         inputstream=None,
         **kwargs
     ):
         exclude = exclude if exclude is not None else self.__exclude__
         fps_limit = fps_limit if fps_limit is not None else self.__fps_limit__
         fps_hint = fps_hint if fps_hint is not None else self.__fps_hint__
+        height = height or self.__height__
         inputstream = inputstream if inputstream is not None else "adaptive"
         self.logger.info(
             f"manifest("
                 f"exclude={exclude}, "
                 f"fps_limit={fps_limit}, "
                 f"fps_hint={fps_hint}, "
+                f"height={height}, "
                 f"inputstream={inputstream}, "
                 f"kwargs={kwargs}"
             f")"
@@ -247,6 +281,7 @@ class YtDlpMpd(object):
             exclude=__excludes__(exclude) if exclude else None,
             fps_limit=fps_limit,
             fps_hint=fps_hint,
+            height=height,
             inputstream=inputstream,
             **kwargs
         )

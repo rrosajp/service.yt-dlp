@@ -74,6 +74,27 @@
 
             </group>
 
+            <group id="prefs" label="34000">
+
+                <setting id="prefs.height" type="integer" label="34100">
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <options>
+                            <option label="90011">0</option>
+                            <option label="34101">2160</option>
+                            <option label="34102">1440</option>
+                            <option label="34103">1080</option>
+                            <option label="34104">720</option>
+                            <option label="34105">480</option>
+                            <option label="34106">360</option>
+                        </options>
+                    </constraints>
+                    <control type="spinner" format="string" />
+                </setting>
+
+            </group>
+
         </category>
 
     </section>
