@@ -44,7 +44,7 @@ class YtDlpVideo(dict):
 
 NoneCodec = "none"
 
-__codecs__ = {
+Codecs = {
     "avc1": {"contentType": "video", "label": 33101, "names": ("avc1", )},
     "mp4a": {"contentType": "audio", "label": 33102, "names": ("mp4a", )},
     "vp09": {"contentType": "video", "label": 33103, "names": ("vp09", "vp9")},
@@ -60,7 +60,7 @@ __codecs__ = {
 
 def __contentType_codecs__(contentType):
     return set(
-        key for key, codec in __codecs__.items()
+        key for key, codec in Codecs.items()
         if (
             (codec["contentType"] == contentType) and
             (not codec.get("experimental", False))
@@ -80,9 +80,9 @@ def __excludes__(exclude):
         exclude.remove("mp4a") # fallback to aac
     return tuple(
         name for names in (
-            __codecs__[codec]["names"]
+            Codecs[codec]["names"]
             for codec in exclude
-            if codec in __codecs__
+            if codec in Codecs
         ) for name in names
     )
 
@@ -148,6 +148,7 @@ VideoHeights = {
     0:    {"label": 90011, "width": 0}
 }
 
+
 def defaultResolution(fmt, height):
     if (
         (fmt.get("height", 0) == height) or
@@ -183,7 +184,7 @@ class YtDlpVideos(object):
         if (exclude := getSetting("codecs.exclude")):
             self.__exclude__ = exclude.split(",")
             labels = ", ".join(
-                localizedString(__codecs__[codec]["label"])
+                localizedString(Codecs[codec]["label"])
                 for codec in self.__exclude__
             )
         self.logger.info(f"{localizedString(33100)}: {labels}")
@@ -264,6 +265,7 @@ class YtDlpVideos(object):
         formats = info.get("formats", [])
         #self.logger.info(f"formats = {formats}")
         video = YtDlpVideo(info)
+        #self.logger.info(f"video = {video}")
         if (
             (not video["url"]) or
             ((video["extractor"] == "youtube") and (not video["is_live"]))
@@ -271,4 +273,7 @@ class YtDlpVideos(object):
             video["url"] = self.manifest(
                 video, formats, __subtitles__(subtitles), **kwargs
             )
+        #video["url"] = self.manifest(
+        #    video, formats, __subtitles__(subtitles), **kwargs
+        #)
         return video
