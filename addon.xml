@@ -6,9 +6,9 @@
 
     <requires>
         <import addon="xbmc.python" version="3.0.1" />
-        <import addon="script.module.nuttig" version="1.4.10" />
-        <import addon="script.module.iapc" version="2.4.2" />
-        <import addon="script.module.yt-dlp" version="2025.11.12-1" />
+        <import addon="script.module.nuttig" version="1.4.24" />
+        <import addon="script.module.iapc" version="2.4.4" />
+        <import addon="script.module.yt-dlp" version="2026.08.19-1" />
         <import addon="service.manifests" version="2.0.0" />
     </requires>
 
