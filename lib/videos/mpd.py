@@ -62,12 +62,17 @@ def __audio_stream__(
     if (inputstream == "adaptive"):
         pref = fmt.get("language_preference", -1)
         original = (pref == 10)
-        impaired = (pref == -10)
-        stream.update(original=original, impaired=impaired)
-        if track:
-            stream["_default_"] = __adefault__(lang, track, codec, acodec)
-        else:
-            stream["default"] = original
+        #impaired = (pref == -10)
+        #stream.update(original=original, impaired=impaired)
+        #if not track:
+        #    if original:
+        #        track = lang
+        #    elif acodec:
+        #        track = ()
+        stream.update(original=original, impaired=(pref == -10))
+        track = track or (lang if original else (() if acodec else track))
+        if any(_default_ := __adefault__(lang, track, codec, acodec)):
+            stream["_default_"] = _default_
     return stream
 
 
